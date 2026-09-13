@@ -1,0 +1,8 @@
+{
+  "rules": {
+    "clicks": {
+      ".read": true,
+      ".write": "newData.isNumber()"
+    }
+  }
+}

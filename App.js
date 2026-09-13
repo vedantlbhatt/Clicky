@@ -1,14 +1,21 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
+import { increment, onValue, ref, set } from 'firebase/database';
+import { db } from './firebase';
+
+const clicksRef = ref(db, 'clicks');
 
 export default function App() {
   const [count, setCount] = useState(0);
   const scale = useRef(new Animated.Value(1)).current;
 
+  // Live count shared by every device.
+  useEffect(() => onValue(clicksRef, (snap) => setCount(snap.val() ?? 0)), []);
+
   const onPress = () => {
-    setCount((c) => c + 1);
+    set(clicksRef, increment(1));
     scale.setValue(1);
     Animated.sequence([
       Animated.timing(scale, { toValue: 1.15, duration: 80, useNativeDriver: true }),
