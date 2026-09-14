@@ -3,15 +3,38 @@ import { StatusBar } from 'expo-status-bar';
 import { Animated, Button, Modal, Pressable, StyleSheet, Switch, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { DarkTheme, DefaultTheme, NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { increment, onValue, ref, update } from 'firebase/database';
 import { auth, db } from './firebase';
 import AuthScreen from './AuthScreen';
+import LeaderboardScreen from './LeaderboardScreen';
 
+// accent is the cookie brown, lightened in dark mode so it stays visible.
 const themes = {
-  light: { background: '#fff', text: '#000', card: '#f2f2f2', border: '#ccc' },
-  dark: { background: '#121212', text: '#fff', card: '#1e1e1e', border: '#444' },
+  light: {
+    background: '#fff',
+    text: '#000',
+    muted: '#6e6e73',
+    card: '#f2f2f2',
+    border: '#ccc',
+    accent: '#6D3C17',
+    onAccent: '#fff',
+  },
+  dark: {
+    background: '#121212',
+    text: '#fff',
+    muted: '#98989f',
+    card: '#1e1e1e',
+    border: '#444',
+    accent: '#D59241',
+    onAccent: '#121212',
+  },
 };
+
+const Stack = createNativeStackNavigator();
 
 export default function App() {
   const [user, setUser] = useState(undefined);
@@ -31,22 +54,64 @@ export default function App() {
 
   const colors = dark ? themes.dark : themes.light;
 
-  let screen = null; // null while checking for a saved session
-  if (user === null) screen = <AuthScreen colors={colors} />;
-  if (user) screen = <CookieScreen user={user} colors={colors} dark={dark} onToggleDark={toggleDark} />;
+  // The navigation header follows the app's own dark mode switch too.
+  const base = dark ? DarkTheme : DefaultTheme;
+  const navTheme = {
+    ...base,
+    colors: {
+      ...base.colors,
+      primary: colors.accent,
+      background: colors.background,
+      card: colors.background,
+      text: colors.text,
+      border: colors.border,
+    },
+  };
 
+  if (user === undefined) return null; // still checking for a saved session
+
+  // Signed-out users only get the sign-in screen, so back can't return to it after signing in.
   return (
-    <>
-      {screen}
+    <SafeAreaProvider>
+      <NavigationContainer theme={navTheme}>
+        <Stack.Navigator>
+          {user ? (
+            <>
+              <Stack.Screen name="Clicker" options={{ title: 'Clicky', headerShown: false }}>
+                {({ navigation }) => (
+                  <CookieScreen
+                    user={user}
+                    colors={colors}
+                    dark={dark}
+                    onToggleDark={toggleDark}
+                    onOpenLeaderboard={() => navigation.navigate('Leaderboard')}
+                  />
+                )}
+              </Stack.Screen>
+              <Stack.Screen
+                name="Leaderboard"
+                options={{ headerLargeTitle: true, headerShadowVisible: false }}
+              >
+                {() => <LeaderboardScreen uid={user.uid} colors={colors} />}
+              </Stack.Screen>
+            </>
+          ) : (
+            <Stack.Screen name="SignIn" options={{ headerShown: false }}>
+              {() => <AuthScreen colors={colors} />}
+            </Stack.Screen>
+          )}
+        </Stack.Navigator>
+      </NavigationContainer>
       <StatusBar style={dark ? 'light' : 'dark'} />
-    </>
+    </SafeAreaProvider>
   );
 }
 
-function CookieScreen({ user, colors, dark, onToggleDark }) {
+function CookieScreen({ user, colors, dark, onToggleDark, onOpenLeaderboard }) {
   const [myCount, setMyCount] = useState(0);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const scale = useRef(new Animated.Value(1)).current;
+  const insets = useSafeAreaInsets();
 
   // This account's own clicks.
   useEffect(
@@ -75,7 +140,7 @@ function CookieScreen({ user, colors, dark, onToggleDark }) {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <Pressable
-        style={styles.settingsButton}
+        style={[styles.settingsButton, { top: insets.top + 8 }]}
         onPress={() => setSettingsOpen(true)}
         hitSlop={12}
         accessibilityLabel="Settings"
@@ -92,6 +157,22 @@ function CookieScreen({ user, colors, dark, onToggleDark }) {
         <Animated.View style={{ transform: [{ scale }] }}>
           <Image source={require('./assets/cookie.svg')} style={styles.cookie} contentFit="contain" />
         </Animated.View>
+      </Pressable>
+
+      <Pressable
+        onPress={onOpenLeaderboard}
+        accessibilityRole="button"
+        style={({ pressed }) => [
+          styles.leaderboardButton,
+          {
+            bottom: insets.bottom + 16,
+            backgroundColor: colors.accent,
+            opacity: pressed ? 0.85 : 1,
+            transform: [{ scale: pressed ? 0.97 : 1 }],
+          },
+        ]}
+      >
+        <Text style={[styles.leaderboardLabel, { color: colors.onAccent }]}>Leaderboard</Text>
       </Pressable>
 
       <Modal
@@ -127,7 +208,6 @@ const styles = StyleSheet.create({
   },
   settingsButton: {
     position: 'absolute',
-    top: 60,
     right: 24,
     padding: 8,
   },
@@ -143,6 +223,20 @@ const styles = StyleSheet.create({
   cookie: {
     width: 220,
     height: 220,
+  },
+  leaderboardButton: {
+    position: 'absolute',
+    left: 24,
+    right: 24,
+    height: 56,
+    borderRadius: 28,
+    borderCurve: 'continuous',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  leaderboardLabel: {
+    fontSize: 17,
+    fontWeight: '600',
   },
   backdrop: {
     flex: 1,
