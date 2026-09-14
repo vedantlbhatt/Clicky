@@ -2,7 +2,16 @@
   "rules": {
     "clicks": {
       ".read": true,
-      ".write": "newData.isNumber()"
+      ".write": "auth != null && newData.isNumber()"
+    },
+    "users": {
+      ".read": true,
+      ".indexOn": ["clicks"],
+      "$uid": {
+        ".write": "auth != null && auth.uid === $uid",
+        "name": { ".validate": "newData.isString()" },
+        "clicks": { ".validate": "newData.isNumber()" }
+      }
     }
   }
 }
