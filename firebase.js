@@ -1,5 +1,7 @@
 import { initializeApp } from 'firebase/app';
+import { getReactNativePersistence, initializeAuth } from 'firebase/auth';
 import { getDatabase } from 'firebase/database';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const firebaseConfig = {
   apiKey: 'AIzaSyCDq2O40KkvbGJTmwwRUuxJKaRz0y0YwaE',
@@ -11,4 +13,11 @@ const firebaseConfig = {
   appId: '1:920884120188:web:efa3f7fcee0969e640d7f9',
 };
 
-export const db = getDatabase(initializeApp(firebaseConfig));
+const app = initializeApp(firebaseConfig);
+
+export const db = getDatabase(app);
+
+// AsyncStorage keeps users signed in between app launches.
+export const auth = initializeAuth(app, {
+  persistence: getReactNativePersistence(AsyncStorage),
+});
