@@ -6,6 +6,7 @@ import { db } from './firebase';
 // Gold, silver, and bronze badges for the top three ranks.
 const medals = ['#E5A823', '#A3ABB5', '#C07F4A'];
 
+// Every account ranked by click count, highest first. uid is the signed-in user, to highlight their row.
 export default function LeaderboardScreen({ uid, colors }) {
   const [players, setPlayers] = useState(null); // null until the first snapshot arrives
   const [error, setError] = useState('');
@@ -30,6 +31,7 @@ export default function LeaderboardScreen({ uid, colors }) {
     []
   );
 
+  // Shown when the list is empty: a spinner while loading, then an error or a "no players" hint.
   const messageStyle = [styles.message, { color: colors.muted }];
   let emptyState = <ActivityIndicator style={styles.message} />;
   if (error) {
@@ -51,8 +53,9 @@ export default function LeaderboardScreen({ uid, colors }) {
   );
 }
 
+// One line of the leaderboard: rank badge, name, and click count.
 function Row({ player, isYou, colors }) {
-  const medal = medals[player.rank - 1];
+  const medal = medals[player.rank - 1]; // undefined past 3rd place, so the badge stays plain
   return (
     <View style={[styles.row, isYou && { backgroundColor: colors.card }]}>
       <View style={[styles.badge, medal && { backgroundColor: medal }]}>

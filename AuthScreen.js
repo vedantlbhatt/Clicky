@@ -8,6 +8,8 @@ import {
 import { ref, set } from 'firebase/database';
 import { auth, db } from './firebase';
 
+// Email/password form. One screen handles both signing in and creating an account;
+// isSignUp switches between the two modes.
 export default function AuthScreen({ colors }) {
   const [isSignUp, setIsSignUp] = useState(false);
   const [name, setName] = useState('');
@@ -15,6 +17,7 @@ export default function AuthScreen({ colors }) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
 
+  // No navigation needed on success: App.js hears the auth change and swaps to the cookie screen.
   const submit = async () => {
     setError('');
     try {
@@ -27,6 +30,7 @@ export default function AuthScreen({ colors }) {
         await signInWithEmailAndPassword(auth, email, password);
       }
     } catch (e) {
+      // e.g. wrong password, email already in use, or password too short.
       setError(e.message);
     }
   };
@@ -36,6 +40,7 @@ export default function AuthScreen({ colors }) {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <Text style={[styles.title, { color: colors.text }]}>{isSignUp ? 'Create account' : 'Sign in'}</Text>
+      {/* Display name is only asked for when creating an account */}
       {isSignUp && (
         <TextInput
           style={inputStyle}
