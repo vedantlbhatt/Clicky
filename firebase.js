@@ -3,6 +3,8 @@ import { getReactNativePersistence, initializeAuth } from 'firebase/auth';
 import { getDatabase } from 'firebase/database';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+// Identifies the Firebase project. These values aren't secret; who can read and
+// write data is controlled by the rules in database.rules.json.
 const firebaseConfig = {
   apiKey: 'AIzaSyCDq2O40KkvbGJTmwwRUuxJKaRz0y0YwaE',
   authDomain: 'clicky-cookie-ab56.firebaseapp.com',
@@ -15,6 +17,7 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 
+// Realtime Database, where each account's clicks live at /users/{uid}.
 export const db = getDatabase(app);
 
 // AsyncStorage keeps users signed in between app launches.

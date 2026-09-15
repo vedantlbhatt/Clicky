@@ -34,12 +34,16 @@ const themes = {
   },
 };
 
+// A stack navigator: opening a screen slides it on top, and back pops it off.
 const Stack = createNativeStackNavigator();
 
+// Root component. Tracks who is signed in and the theme, then picks which screens to show.
 export default function App() {
-  const [user, setUser] = useState(undefined);
+  const [user, setUser] = useState(undefined); // undefined = loading, null = signed out
   const [dark, setDark] = useState(false);
 
+  // Firebase calls setUser on sign-in and sign-out. Returning the unsubscribe
+  // function removes the listener if App ever unmounts.
   useEffect(() => onAuthStateChanged(auth, setUser), []);
 
   // Remember the theme choice between launches.
@@ -107,24 +111,30 @@ export default function App() {
   );
 }
 
+// Main screen: the cookie, this account's count, a settings popup, and a leaderboard button.
 function CookieScreen({ user, colors, dark, onToggleDark, onOpenLeaderboard }) {
   const [myCount, setMyCount] = useState(0);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  // Cookie size multiplier for the bounce animation (1 = normal size).
   const scale = useRef(new Animated.Value(1)).current;
+  // Space used by the notch and home indicator, so buttons don't sit underneath them.
   const insets = useSafeAreaInsets();
 
-  // This account's own clicks.
+  // This account's own clicks. onValue fires once right away, then again on
+  // every change, including taps from this account on other devices.
   useEffect(
     () => onValue(ref(db, `users/${user.uid}/clicks`), (snap) => setMyCount(snap.val() ?? 0)),
     [user.uid]
   );
 
   const onPress = () => {
+    // increment(1) is applied by the server, so taps from two devices at once both count.
     // Also saves the name, so a record missing it gets fixed on the next tap.
     update(ref(db, `users/${user.uid}`), {
       clicks: increment(1),
       name: user.displayName ?? 'Anonymous',
     });
+    // Bounce: grow to 115% quickly, then spring back to normal size.
     scale.setValue(1);
     Animated.sequence([
       Animated.timing(scale, { toValue: 1.15, duration: 80, useNativeDriver: true }),
@@ -139,6 +149,7 @@ function CookieScreen({ user, colors, dark, onToggleDark, onOpenLeaderboard }) {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
+      {/* Gear icon in the top-right corner opens settings */}
       <Pressable
         style={[styles.settingsButton, { top: insets.top + 8 }]}
         onPress={() => setSettingsOpen(true)}
@@ -152,6 +163,7 @@ function CookieScreen({ user, colors, dark, onToggleDark, onOpenLeaderboard }) {
         />
       </Pressable>
 
+      {/* The count and the cookie itself */}
       <Text style={[styles.count, { color: colors.text }]}>{myCount} cookies</Text>
       <Pressable onPress={onPress}>
         <Animated.View style={{ transform: [{ scale }] }}>
@@ -159,6 +171,7 @@ function CookieScreen({ user, colors, dark, onToggleDark, onOpenLeaderboard }) {
         </Animated.View>
       </Pressable>
 
+      {/* Full-width button pinned to the bottom; shrinks slightly while pressed */}
       <Pressable
         onPress={onOpenLeaderboard}
         accessibilityRole="button"
@@ -175,6 +188,7 @@ function CookieScreen({ user, colors, dark, onToggleDark, onOpenLeaderboard }) {
         <Text style={[styles.leaderboardLabel, { color: colors.onAccent }]}>Leaderboard</Text>
       </Pressable>
 
+      {/* Settings popup over a dimmed background. onRequestClose handles Android's back button. */}
       <Modal
         visible={settingsOpen}
         transparent
@@ -200,6 +214,7 @@ function CookieScreen({ user, colors, dark, onToggleDark, onOpenLeaderboard }) {
   );
 }
 
+// Layout and sizing. Theme colors are applied inline above so they can change at runtime.
 const styles = StyleSheet.create({
   container: {
     flex: 1,
